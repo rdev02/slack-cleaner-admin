@@ -38,36 +38,48 @@ def clean_slack(timeBefore):
         'failedFiles': 0
       }
 
-  for c in s.ims:
-    for msg in c.msgs(before=timeBefore, with_replies=True):
-      if msg.delete() == None:
-        stats[msg.user.id]['removedMsg'] += 1
-      else:
-        stats[msg.user.id]['failedMsg'] += 1
+  try:
+    for c in s.ims:
+      for msg in c.msgs(before=timeBefore, with_replies=True):
+        if msg.delete() == None:
+          stats[msg.user.id]['removedMsg'] += 1
+        else:
+          stats[msg.user.id]['failedMsg'] += 1
+  except Exception as e:
+    stats['errorIm'] = f'exception while deletig ims: {e}'    
 
-  for c in s.mpim:
-    for msg in c.msgs(before=timeBefore, with_replies=True):
-      if msg.delete() == None:
-        stats[msg.user.id]['removedMsg'] += 1
-      else:
-        stats[msg.user.id]['failedMsg'] += 1
+  try:
+    for c in s.mpim:
+      for msg in c.msgs(before=timeBefore, with_replies=True):
+        if msg.delete() == None:
+          stats[msg.user.id]['removedMsg'] += 1
+        else:
+          stats[msg.user.id]['failedMsg'] += 1
+  except Exception as e:
+    stats['errorMpim'] = f'exception while deletig mpims: {e}'  
 
-  for channel in s.conversations:
-    for msg in channel.msgs(before=timeBefore, with_replies=True):
-      if not msg.user_id:
-        continue #sys messages
-      if msg.delete() == None:
-        stats[msg.user.id]['removedMsg'] += 1
-      else:
-        stats[msg.user.id]['failedMsg'] += 1
+  try:
+    for channel in s.conversations:
+      for msg in channel.msgs(before=timeBefore, with_replies=True):
+        if not msg.user_id:
+          continue #sys messages
+        if msg.delete() == None:
+          stats[msg.user.id]['removedMsg'] += 1
+        else:
+          stats[msg.user.id]['failedMsg'] += 1
+  except Exception as e:
+    stats['errorConversations'] = f'exception while deletig conversations: {e}'  
   
-  for file in s.files(before=a_while_ago(months=1)):
-    if not file.user.id:
-      continue
-    if file.delete() == None:
-      stats[file.user.id]['removedFiles'] += 1
-    else: 
-      stats[file.user.id]['failedFiles'] += 1
+  try:
+    for file in s.files(before=a_while_ago(months=1)):
+      if not file.user.id:
+        continue
+      if file.delete() == None:
+        stats[file.user.id]['removedFiles'] += 1
+      else: 
+        stats[file.user.id]['failedFiles'] += 1
+  except Exception as e:
+    stats['errorFiles'] = f'exception while deletig files: {e}'   
   
   return stats
 
@@ -78,7 +90,11 @@ report_channel_name = "#" + os.environ["SLACK_CHANNEL"]
 stats = clean_slack(a_while_ago(months=1))
 
 userStatsStr = 'removed ```';
+errorString = '\nErrors:\n'
 for uId in stats.keys():
+  if uId.text.startswith('error'):
+    errorString += stats[uId]
+    continue
   uname = stats[uId]['name']
   totalmsgs = stats[uId]['removedMsg']
   totalFailedmsgs = stats[uId]['failedMsg']
@@ -90,7 +106,7 @@ for uId in stats.keys():
   totalFailedFiles = stats[uId]['failedFiles']
   
   userStatsStr += f"{uname}: {totalmsgs} msgs / {} failed; {totalFiles} files / {totalFailedFiles} failed\n" 
-userStatsStr += "```"
+userStatsStr += "```" + errorString
 
 print(userStatsStr)
 post_message_to_slack(oauth_token, report_channel_name, userStatsStr)
