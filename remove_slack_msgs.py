@@ -3,6 +3,10 @@ import os
 import requests
 import json
 
+from datetime import datetime
+
+today = datetime.now()
+print("Today:", today.strftime("%d/%m/%Y %H:%M:%S"))
 
 def post_message_to_slack(token, channel, text):
     url = "https://slack.com/api/chat.postMessage"
@@ -17,7 +21,7 @@ def post_message_to_slack(token, channel, text):
 
     response = requests.post(url, headers=headers, data=json.dumps(payload))
 
-    if response.status_code == 200:
+    if response.status_code == 200 and response.json()['ok']:
         print("Message posted successfully!")
         return response.json()
     else:
@@ -105,7 +109,7 @@ for uId in stats.keys():
   totalFiles = stats[uId]['removedFiles']
   totalFailedFiles = stats[uId]['failedFiles']
   
-  userStatsStr += f"{uname}: {totalmsgs} msgs / {} failed; {totalFiles} files / {totalFailedFiles} failed\n" 
+  userStatsStr += f"{uname}: {totalmsgs} msgs / {totalFailedmsgs} failed; {totalFiles} files / {totalFailedFiles} failed\n" 
 userStatsStr += "```" + errorString
 
 print(userStatsStr)
