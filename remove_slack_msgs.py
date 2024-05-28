@@ -96,7 +96,7 @@ stats = clean_slack(a_while_ago(months=1))
 userStatsStr = 'removed ```';
 errorString = '\nErrors:\n'
 for uId in stats.keys():
-  if uId.text.startswith('error'):
+  if uId.startswith('error'):
     errorString += stats[uId]
     continue
   uname = stats[uId]['name']
