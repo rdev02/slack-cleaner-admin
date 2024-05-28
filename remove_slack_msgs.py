@@ -32,6 +32,7 @@ def post_message_to_slack(token, channel, text):
 def clean_slack(timeBefore):
   s = SlackCleaner(os.environ["SLACK_TOKEN"])
   stats = {};
+  my_id = s.myself.id
 
   for u in s.users:
       stats[u.id] = {
@@ -45,7 +46,11 @@ def clean_slack(timeBefore):
   try:
     for c in s.ims:
       for msg in c.msgs(before=timeBefore, with_replies=True):
-        if msg.delete() == None:
+        # can't delete private messages of others
+        if msg.user_id != my_id:
+          continue
+        
+        if msg.delete(files=True, replies=True) == None:
           stats[msg.user.id]['removedMsg'] += 1
         else:
           stats[msg.user.id]['failedMsg'] += 1
@@ -54,8 +59,12 @@ def clean_slack(timeBefore):
 
   try:
     for c in s.mpim:
+      # can't delete private messages of others
+      if msg.user_id != my_id:
+        continue
+
       for msg in c.msgs(before=timeBefore, with_replies=True):
-        if msg.delete() == None:
+        if msg.delete(files=True, replies=True) == None:
           stats[msg.user.id]['removedMsg'] += 1
         else:
           stats[msg.user.id]['failedMsg'] += 1
@@ -67,7 +76,7 @@ def clean_slack(timeBefore):
       for msg in channel.msgs(before=timeBefore, with_replies=True):
         if not msg.user_id:
           continue #sys messages
-        if msg.delete() == None:
+        if msg.delete(files=True, replies=True) == None:
           stats[msg.user.id]['removedMsg'] += 1
         else:
           stats[msg.user.id]['failedMsg'] += 1
@@ -91,7 +100,7 @@ def clean_slack(timeBefore):
 oauth_token = os.environ["SLACK_TOKEN"]
 report_channel_name = "#" + os.environ["SLACK_CHANNEL"]
 
-stats = clean_slack(a_while_ago(months=1))
+stats = clean_slack(a_while_ago(months=2))
 
 userStatsStr = 'removed ```';
 errorString = '\nErrors:\n'
