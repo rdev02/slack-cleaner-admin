@@ -49,7 +49,7 @@ def clean_slack(timeBefore):
         # can't delete private messages of others
         if msg.user_id != my_id:
           continue
-        
+
         if msg.delete(files=True, replies=True) == None:
           stats[msg.user.id]['removedMsg'] += 1
         else:
@@ -76,6 +76,11 @@ def clean_slack(timeBefore):
       for msg in channel.msgs(before=timeBefore, with_replies=True):
         if not msg.user_id:
           continue #sys messages
+
+        # can't delete private messages of others
+        if channel.name == msg.user.name:
+          continue
+
         if msg.delete(files=True, replies=True) == None:
           stats[msg.user.id]['removedMsg'] += 1
         else:
@@ -100,10 +105,11 @@ def clean_slack(timeBefore):
 oauth_token = os.environ["SLACK_TOKEN"]
 report_channel_name = "#" + os.environ["SLACK_CHANNEL"]
 
-stats = clean_slack(a_while_ago(months=2))
+stats = clean_slack(a_while_ago(months=1))
 
 userStatsStr = 'removed ```';
 errorString = '\nErrors:\n'
+noErrorsLen = len(errorString)
 for uId in stats.keys():
   if uId.startswith('error'):
     errorString += stats[uId]
@@ -119,7 +125,7 @@ for uId in stats.keys():
   totalFailedFiles = stats[uId]['failedFiles']
   
   userStatsStr += f"{uname}: {totalmsgs} msgs / {totalFailedmsgs} failed; {totalFiles} files / {totalFailedFiles} failed\n" 
-userStatsStr += "```" + errorString
+userStatsStr += "```" + ("" if len(errorString) == noErrorsLen else errorString)
 
 print(userStatsStr)
 post_message_to_slack(oauth_token, report_channel_name, userStatsStr)
