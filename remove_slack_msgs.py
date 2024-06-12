@@ -110,6 +110,8 @@ stats = clean_slack(a_while_ago(months=1))
 userStatsStr = 'removed ```';
 errorString = '\nErrors:\n'
 noErrorsLen = len(errorString)
+grandTotalRemovedMsg = 0
+grandTotalRemovedFile = 0
 for uId in stats.keys():
   if uId.startswith('error'):
     errorString += stats[uId]
@@ -121,11 +123,13 @@ for uId in stats.keys():
      print(f'skipping {uname}')
      continue
 
+  grandTotalRemovedMsg += totalmsgs
   totalFiles = stats[uId]['removedFiles']
   totalFailedFiles = stats[uId]['failedFiles']
+  grandTotalRemovedFile += totalFiles
   
   userStatsStr += f"{uname}: {totalmsgs} msgs / {totalFailedmsgs} failed; {totalFiles} files / {totalFailedFiles} failed\n" 
 userStatsStr += "```" + ("" if len(errorString) == noErrorsLen else errorString)
 
 print(userStatsStr)
-post_message_to_slack(oauth_token, report_channel_name, userStatsStr)
+post_message_to_slack(oauth_token, report_channel_name, f"removed `{grandTotalRemovedMsg} msgs` and `{grandTotalRemovedFile}` files")
